@@ -81,28 +81,27 @@ class ExportSigleObjects():
 def IsValidActionForExport(scene, obj, animType):
     if animType == "Action":
         if scene.anin_export:
-            if obj.bfu_export_procedure == 'auto-rig-pro':
-                if CheckPluginIsActivated('auto_rig_pro-master'):
-                    return True
-            else:
+            if (
+                obj.bfu_export_procedure == 'auto-rig-pro'
+                and CheckPluginIsActivated('auto_rig_pro-master')
+                or obj.bfu_export_procedure != 'auto-rig-pro'
+            ):
                 return True
         else:
             False
     elif animType == "Pose":
         if scene.anin_export:
-            if obj.bfu_export_procedure == 'auto-rig-pro':
-                if CheckPluginIsActivated('auto_rig_pro-master'):
-                    return True
-            else:
+            if (
+                obj.bfu_export_procedure == 'auto-rig-pro'
+                and CheckPluginIsActivated('auto_rig_pro-master')
+                or obj.bfu_export_procedure != 'auto-rig-pro'
+            ):
                 return True
         else:
             False
     elif animType == "NLA":
         if scene.anin_export:
-            if obj.bfu_export_procedure == 'auto-rig-pro':
-                return False
-            else:
-                return True
+            return obj.bfu_export_procedure != 'auto-rig-pro'
         else:
             False
     else:
@@ -119,17 +118,15 @@ def IsValidObjectForExport(scene, obj):
         return scene.static_export
     if objType == "SkeletalMesh":
         if scene.skeletal_export:
-            if obj.bfu_export_procedure == 'auto-rig-pro':
-                if CheckPluginIsActivated('auto_rig_pro-master'):
-                    return True
-            else:
+            if (
+                obj.bfu_export_procedure == 'auto-rig-pro'
+                and CheckPluginIsActivated('auto_rig_pro-master')
+                or obj.bfu_export_procedure != 'auto-rig-pro'
+            ):
                 return True
         else:
             False
-    if objType == "Alembic":
-        return scene.alembic_export
-
-    return False
+    return scene.alembic_export if objType == "Alembic" else False
 
 
 def ExportAllAssetByList(targetobjects, targetActionName, targetcollection):
@@ -244,30 +241,33 @@ def ExportAllAssetByList(targetobjects, targetActionName, targetcollection):
                         animType = GetActionType(action)
 
                         # Action and Pose
-                        if IsValidActionForExport(scene, obj, animType):
-                            if animType == "Action" or animType == "Pose":
-                                # Save current start/end frame
-                                UserStartFrame = scene.frame_start
-                                UserEndFrame = scene.frame_end
-                                ProcessActionExport(obj, action)
+                        if IsValidActionForExport(
+                            scene, obj, animType
+                        ) and animType in ["Action", "Pose"]:
+                            # Save current start/end frame
+                            UserStartFrame = scene.frame_start
+                            UserEndFrame = scene.frame_end
+                            ProcessActionExport(obj, action)
 
-                                # Resets previous start/end frame
-                                scene.frame_start = UserStartFrame
-                                scene.frame_end = UserEndFrame
-                                UpdateExportProgress()
+                            # Resets previous start/end frame
+                            scene.frame_start = UserStartFrame
+                            scene.frame_end = UserEndFrame
+                            UpdateExportProgress()
 
                 # NLA animation
                 print("Start Export NLA(s)")
-                if IsValidActionForExport(scene, obj, "NLA"):
-                    if obj.bfu_anim_nla_use:
-                        # Save current start/end frame
-                        UserStartFrame = scene.frame_start
-                        UserEndFrame = scene.frame_end
+                if (
+                    IsValidActionForExport(scene, obj, "NLA")
+                    and obj.bfu_anim_nla_use
+                ):
+                    # Save current start/end frame
+                    UserStartFrame = scene.frame_start
+                    UserEndFrame = scene.frame_end
 
-                        ProcessNLAAnimExport(obj)
-                        # Resets previous start/end frame
-                        scene.frame_start = UserStartFrame
-                        scene.frame_end = UserEndFrame
+                    ProcessNLAAnimExport(obj)
+                    # Resets previous start/end frame
+                    scene.frame_start = UserStartFrame
+                    scene.frame_end = UserEndFrame
 
     UpdateExportProgress(counter.GetTime())
 
@@ -318,7 +318,7 @@ def ExportForUnrealEngine():
     AssetToExport = GetFinalAssetToExport()
 
     for Asset in AssetToExport:
-        if Asset.type == "Action" or Asset.type == "Pose":
+        if Asset.type in ["Action", "Pose"]:
             if Asset.obj not in action_list:
                 action_list.append(Asset.action.name)
             if Asset.obj not in obj_list:
@@ -328,9 +328,8 @@ def ExportForUnrealEngine():
             if Asset.obj not in col_list:
                 col_list.append(Asset.obj)
 
-        else:
-            if Asset.obj not in obj_list:
-                obj_list.append(Asset.obj)
+        elif Asset.obj not in obj_list:
+            obj_list.append(Asset.obj)
 
     ExportAllAssetByList(
         targetobjects=obj_list,

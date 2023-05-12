@@ -37,10 +37,8 @@ import mathutils
 
 def createSafeBone(armature, bone_name, layer=None):
     if bone_name in armature.data.edit_bones:
-        print("Bone alredy exit! : "+bone_name)
-        raise TypeError("Bone alredy exit! : "+bone_name)
-        return
-
+        print(f"Bone alredy exit! : {bone_name}")
+        raise TypeError(f"Bone alredy exit! : {bone_name}")
     bone = armature.data.edit_bones.new(bone_name)
     bone.tail = bone.head + mathutils.Vector((0, 0, 1))
 
@@ -90,10 +88,7 @@ def getMirrorBoneName(original_bones: str, debug=False):
         new_bones.append(TryToInvertBones(bone))
 
     # Can return same bone when don't found mirror
-    if not isinstance(original_bones, list):
-        return new_bones[0]
-    else:
-        return new_bones
+    return new_bones[0] if not isinstance(original_bones, list) else new_bones
 
 
 def getNameWithNewPrefix(Name, old_prefix, new_prefix):
@@ -102,12 +97,10 @@ def getNameWithNewPrefix(Name, old_prefix, new_prefix):
     '''
 
     new_bone_name = Name
-    if new_bone_name.startswith(old_prefix):
-        new_bone_name = new_bone_name[len(old_prefix):]
-        new_bone_name = new_prefix+new_bone_name
-    else:
-        raise TypeError('"' + old_prefix + '" not found as prefix in "' + Name + '".')
-    return new_bone_name
+    if not new_bone_name.startswith(old_prefix):
+        raise TypeError(f'"{old_prefix}" not found as prefix in "{Name}".')
+    new_bone_name = new_bone_name[len(old_prefix):]
+    return new_prefix+new_bone_name
 
 
 def getNameListWithNewPrefix(NameList, old_prefix, new_prefix):
@@ -115,70 +108,51 @@ def getNameListWithNewPrefix(NameList, old_prefix, new_prefix):
     Remplace an prefix and add a new prefix to a list.
     '''
 
-    new_list = []
-    for name in NameList:
-        new_list.append(getNameWithNewPrefix(name, old_prefix, new_prefix))
-    return new_list
+    return [
+        getNameWithNewPrefix(name, old_prefix, new_prefix) for name in NameList
+    ]
 
 
 def noNum(name):
     # get bnone name without number index
     u = name[-4:]
-    if u == ".000" or u == ".001" or u == ".002" or u == ".003":
-        return name[:-4]
-    return name
+    return name[:-4] if u in [".000", ".001", ".002", ".003"] else name
 
 # Layer type
 
 
 def inConstructLayer(armature, source):
-    if source.layers[armature.mar_construct_layer] is True:
-        return True
-    return False
+    return source.layers[armature.mar_construct_layer] is True
 
 
 def inDeformLayer(armature, source):
-    if source.layers[armature.mar_deform_layer] is True:
-        return True
-    return False
+    return source.layers[armature.mar_deform_layer] is True
 
 
 def inRigLayer(armature, source):
-    if source.layers[armature.mar_rig_layer] is True:
-        return True
-    return False
+    return source.layers[armature.mar_rig_layer] is True
 
 
 def inRigJointLayer(armature, source):
-    if source.layers[armature.mar_rig_joint_layer] is True:
-        return True
-    return False
+    return source.layers[armature.mar_rig_joint_layer] is True
 
 # Bone type
 
 
 def isConstructBone(armature, source):
-    if source.name.startswith(armature.mar_construct_prefix) is True:
-        return True
-    return False
+    return source.name.startswith(armature.mar_construct_prefix) is True
 
 
 def isDeformBone(armature, source):
-    if source.name.startswith(armature.mar_deform_prefix) is True:
-        return True
-    return False
+    return source.name.startswith(armature.mar_deform_prefix) is True
 
 
 def isRigBone(armature, source):
-    if source.name.startswith(armature.mar_rig_prefix) is True:
-        return True
-    return False
+    return source.name.startswith(armature.mar_rig_prefix) is True
 
 
 def isRigJointBone(armature, source):
-    if source.name.startswith(armature.mar_rig_joint_prefix) is True:
-        return True
-    return False
+    return source.name.startswith(armature.mar_rig_joint_prefix) is True
 
 
 def changeCurrentLayer(layer, source):
@@ -238,10 +212,7 @@ def duplicateRigLayer(armature, original_layer, new_layer, old_prefix, new_prefi
     changeSelectLayer(new_layer)  # Move bone to layer
     changeUserViewLayer(new_layer)  # Move self to layer
 
-    NewBonesNames = []
-    for bone in bpy.context.selected_bones:
-        NewBonesNames.append(bone.name)
-
+    NewBonesNames = [bone.name for bone in bpy.context.selected_bones]
     pbc = bps.advprint.ProgressionBarClass()
     pbc.name = process_title
     pbc.total_step = len(NewBonesNames)
@@ -286,8 +257,8 @@ def createRigCollectionSubFolder(armature, col_type="RIG"):
             rig_col.children.link(cameras_Col)
         return cameras_Col
     else:
-        print("In getRigCollection() "+col_type+" not found!")
-        raise TypeError("In getRigCollection() "+col_type+" not found!")
+        print(f"In getRigCollection() {col_type} not found!")
+        raise TypeError(f"In getRigCollection() {col_type} not found!")
 
 
 def getRigCollectionSubFolder(armature, col_type="RIG"):
@@ -305,8 +276,8 @@ def getRigCollectionSubFolder(armature, col_type="RIG"):
         return bbpl.utils.getSafeCollection(armature.name+armature.mar_cameras_collection_prefix)
 
     else:
-        print("In getRigCollection() "+col_type+" not found!")
-        raise TypeError("In getRigCollection() "+col_type+" not found!")
+        print(f"In getRigCollection() {col_type} not found!")
+        raise TypeError(f"In getRigCollection() {col_type} not found!")
 
 
 class OrphanBone():
@@ -323,7 +294,7 @@ class OrphanBone():
                     bone.parent = self.armature.data.edit_bones[self.new_parent_name]
                     # print(bone.name, " child for ", self.new_parent_name)  # Debug
         else:
-            print("Error new_parent not set in orphan_bone() for " + self.name)
+            print(f"Error new_parent not set in orphan_bone() for {self.name}")
 
 
 def setBoneOrientation(armature, bone_name, vector, roll):
@@ -374,7 +345,7 @@ def createHeadControlPoint(armature, bone_name, add_controller=False, prefix="Ta
     Cree bone RP pour le parent et l'enfant.
     '''
 
-    rp_point_bone_name = rjp+"HeadControlPoint_"+bone_name
+    rp_point_bone_name = f"{rjp}HeadControlPoint_{bone_name}"
     rp_point_bone = bbpl.rig_utils.createSafeBone(armature, rp_point_bone_name, layer=armature.mar_rig_joint_layer)
     rp_point_bone.parent = rp_bone
 
@@ -415,7 +386,7 @@ def createTailControlPoint(armature, bone_name, add_controller=False, prefix="Ta
     Cree bone RP pour le parent et l'enfant.
     '''
 
-    rp_point_bone_name = rjp+"TailControlPoint_"+bone_name
+    rp_point_bone_name = f"{rjp}TailControlPoint_{bone_name}"
     rp_point_bone = bbpl.rig_utils.createSafeBone(armature, rp_point_bone_name, layer=armature.mar_rig_joint_layer)
     rp_point_bone.parent = rp_bone
 
@@ -460,11 +431,11 @@ def createBoneInterpolation(armature, parent_bone_name, child_bone_name, positio
     Je cree deux bone RP pour le parent et l'enfant.
     '''
 
-    rp_parent_bone_name = rjp+"InterpParent_"+parent_bone_name
+    rp_parent_bone_name = f"{rjp}InterpParent_{parent_bone_name}"
     rp_parent_bone = createSafeBone(armature, rp_parent_bone_name, layer=armature.mar_rig_joint_layer)
     rp_parent_bone.parent = parent_bone
 
-    rp_child_bone_name = rjp+"InterpChild_"+parent_bone_name
+    rp_child_bone_name = f"{rjp}InterpChild_{parent_bone_name}"
     rp_child_bone = createSafeBone(armature, rp_child_bone_name, layer=armature.mar_rig_joint_layer)
     rp_child_bone.parent = child_bone
 
@@ -501,7 +472,7 @@ def createBoneInterpolation(armature, parent_bone_name, child_bone_name, positio
         target_roll = 0
 
     else:
-        raise TypeError('Position mode not found!' + position_Mode)
+        raise TypeError(f'Position mode not found!{position_Mode}')
 
     if desired_head:
         target_head = desired_head
@@ -530,7 +501,7 @@ def createBoneInterpolation(armature, parent_bone_name, child_bone_name, positio
     Je cree un 3eme os qui ferra l'interpolation entre les deux premier
     '''
 
-    rp_interp_bone_name = rjp+"Interp_"+parent_bone_name
+    rp_interp_bone_name = f"{rjp}Interp_{parent_bone_name}"
     rp_interp_bone = createSafeBone(armature, rp_interp_bone_name, layer=armature.mar_rig_joint_layer)
 
     rp_interp_bone.head = target_head
@@ -557,7 +528,9 @@ def createBoneInterpolation(armature, parent_bone_name, child_bone_name, positio
     elif mode == "TRANSFROM":
         consName = "COPY_TRANSFORMS"
     else:
-        raise TypeError("Error in createBoneInterpolation() consName "+consName+" not valid.")
+        raise TypeError(
+            f"Error in createBoneInterpolation() consName {consName} not valid."
+        )
 
     constraint = armature.pose.bones[rp_interp_bone_name].constraints.new(consName)
     constraint.target = armature
@@ -574,7 +547,7 @@ def createBoneInterpolation(armature, parent_bone_name, child_bone_name, positio
         '''
 
         def CreateStrechDriver(bone_name, value="min_x", axe_index=0):
-            driver_strech_name = 'pose.bones["'+bone_name+'"].scale'
+            driver_strech_name = f'pose.bones["{bone_name}"].scale'
 
             driver_strech = armature.driver_add(driver_strech_name, axe_index).driver
             bbpl.utils.clearDriverVar(driver_strech)
@@ -585,7 +558,7 @@ def createBoneInterpolation(armature, parent_bone_name, child_bone_name, positio
             v.targets[1].id = armature
             v.targets[0].bone_target = rp_parent_bone_name
             v.targets[1].bone_target = rp_child_bone_name
-            driver_strech.expression = "1+"+v.name
+            driver_strech.expression = f"1+{v.name}"
             return driver_strech
 
         strech_drivers = []
@@ -671,15 +644,17 @@ def setBoneOrentationMode(armature, bone_name, orentation="DEFAULT"):
         for bone in armature.pose.bones:
             if armature.data.bones[bone.name].layers[armature.mar_deform_layer]:
                 for con in bone.constraints:
-                    if con.name == "DeformRetargeting":
-                        if con.subtarget == bone_name:
-                            con.subtarget = rjp_bone
+                    if (
+                        con.name == "DeformRetargeting"
+                        and con.subtarget == bone_name
+                    ):
+                        con.subtarget = rjp_bone
 
         bpy.ops.object.mode_set(mode='EDIT')
 
         return rjp_bone
     else:
-        print("Error in setBoneOrentationMode() "+orentation+" not found!")
+        print(f"Error in setBoneOrentationMode() {orentation} not found!")
 
 
 class BoneDataSave():
@@ -688,9 +663,8 @@ class BoneDataSave():
         self.parent = saved_bone.parent.name
         self.childs = []
         for bone in armature:
-            if bone.parent is not None:
-                if bone.parent == saved_bone:
-                    self.childs.append(bone)
+            if bone.parent is not None and bone.parent == saved_bone:
+                self.childs.append(bone)
 
 
 def generateFollowList(
@@ -714,14 +688,14 @@ def generateFollowList(
             bone_with_property=BoneWithProperty,
             target_bone=Follow,
             default_property=value,
-            property_name="Follow_"+Follow,
-            use_rot_only=UseRotOnly
-            )
+            property_name=f"Follow_{Follow}",
+            use_rot_only=UseRotOnly,
+        )
 
     if not follow_Default_found:
         if follow_Default:
-            print("Follow Default not found! "+follow_Default)
-            raise TypeError("Follow Default not found! "+follow_Default)
+            print(f"Follow Default not found! {follow_Default}")
+            raise TypeError(f"Follow Default not found! {follow_Default}")
         else:
             print("Follow Default is None!")
             raise TypeError("Follow Default is None!")
@@ -747,9 +721,9 @@ def generateFollowListWithValues(
             bone_with_property=BoneWithProperty,
             target_bone=Follow,
             default_property=value,
-            property_name="Follow_"+Follow,
-            use_rot_only=UseRotOnly
-            )
+            property_name=f"Follow_{Follow}",
+            use_rot_only=UseRotOnly,
+        )
 
 
 def addBoneFollow(

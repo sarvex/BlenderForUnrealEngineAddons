@@ -50,38 +50,33 @@ def WriteImportAssetScript():
     # Generate a script for import assets in Ue4
     scene = bpy.context.scene
 
-    data = {}
-    data['Coment'] = {
-        '1/3': ti('write_text_additional_track_start'),
-        '2/3': ti('write_text_additional_track_camera'),
-        '3/3': ti('write_text_additional_track_end'),
+    data = {
+        'Coment': {
+            '1/3': ti('write_text_additional_track_start'),
+            '2/3': ti('write_text_additional_track_camera'),
+            '3/3': ti('write_text_additional_track_end'),
+        },
+        'unreal_import_location': f'/{scene.unreal_import_module}/{scene.unreal_import_location}',
+        'assets': [],
     }
-
-    data['unreal_import_location'] = '/' + scene.unreal_import_module + '/' + scene.unreal_import_location
-
-    # Import assets
-    data['assets'] = []
     for asset in scene.UnrealExportedAssetsList:
-        asset_data = {}
-        asset_data["name"] = asset.asset_name
+        asset_data = {"name": asset.asset_name}
         if GetIsAnimation(asset.asset_type):
             asset_data["type"] = "Animation"
         elif asset.asset_type == "Collection StaticMesh":
             asset_data["type"] = "StaticMesh"
         else:
             asset_data["type"] = asset.asset_type
-        if asset.asset_type == "StaticMesh" or asset.asset_type == "SkeletalMesh":
-            if asset.object.ExportAsLod:
-                asset_data["lod"] = 1
-            else:
-                asset_data["lod"] = 0
-
+        if asset.asset_type in ["StaticMesh", "SkeletalMesh"]:
+            asset_data["lod"] = 1 if asset.object.ExportAsLod else 0
         if GetIsAnimation(asset.asset_type):
             relative_import_path = os.path.join(asset.folder_name, scene.anim_subfolder_name)
         else:
             relative_import_path = asset.folder_name
 
-        full_import_path = "/" + scene.unreal_import_module + "/" + os.path.join(scene.unreal_import_location, relative_import_path)
+        full_import_path = f"/{scene.unreal_import_module}/" + os.path.join(
+            scene.unreal_import_location, relative_import_path
+        )
         full_import_path = full_import_path.replace('\\', '/').rstrip('/')
         asset_data["full_import_path"] = full_import_path
 

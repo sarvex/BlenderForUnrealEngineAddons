@@ -67,13 +67,14 @@ def ProcessSkeletalMeshExport(obj):
     file.path = dirpath
     file.type = "FBX"
 
-    if not obj.ExportAsLod:
-        if (scene.text_AdditionalData and addon_prefs.useGeneratedScripts):
-            ExportAdditionalParameter(absdirpath, MyAsset)
-            file = MyAsset.files.add()
-            file.name = GetObjExportFileName(obj, "_AdditionalTrack.json")
-            file.path = dirpath
-            file.type = "AdditionalTrack"
+    if not obj.ExportAsLod and (
+        scene.text_AdditionalData and addon_prefs.useGeneratedScripts
+    ):
+        ExportAdditionalParameter(absdirpath, MyAsset)
+        file = MyAsset.files.add()
+        file.name = GetObjExportFileName(obj, "_AdditionalTrack.json")
+        file.path = dirpath
+        file.type = "AdditionalTrack"
 
     MyAsset.EndAssetExport(True)
     return MyAsset
@@ -149,8 +150,15 @@ def ExportSingleSkeletalMesh(
 
     asset_name.SetExportName()
 
-    if (export_procedure == "normal"):
-        pass
+    if export_procedure == "auto-rig-pro":
+        ExportAutoProRig(
+            filepath=GetExportFullpath(dirpath, filename),
+            # export_rig_name=GetDesiredExportArmatureName(active),
+            bake_anim=False,
+            mesh_smooth_type="FACE"
+            )
+
+    elif export_procedure == "normal":
         bpy.ops.export_scene.fbx(
             filepath=GetExportFullpath(dirpath, filename),
             check_existing=False,
@@ -174,14 +182,6 @@ def ExportSingleSkeletalMesh(
             axis_forward=active.exportAxisForward,
             axis_up=active.exportAxisUp,
             bake_space_transform=False
-            )
-
-    if (export_procedure == "auto-rig-pro"):
-        ExportAutoProRig(
-            filepath=GetExportFullpath(dirpath, filename),
-            # export_rig_name=GetDesiredExportArmatureName(active),
-            bake_anim=False,
-            mesh_smooth_type="FACE"
             )
 
     # This will rescale the rig and unit scale to get a root bone egal to 1

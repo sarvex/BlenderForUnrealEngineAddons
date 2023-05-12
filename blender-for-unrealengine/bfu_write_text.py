@@ -97,12 +97,12 @@ def WriteExportLog():
 
     # Get number per asset type
     for assets in scene.UnrealExportedAssetsList:
-        if assets.asset_type == "StaticMesh":
-            StaticNum += 1
-        if assets.asset_type == "SkeletalMesh":
-            SkeletalNum += 1
         if assets.asset_type == "Alembic":
             AlembicNum += 1
+        elif assets.asset_type == "SkeletalMesh":
+            SkeletalNum += 1
+        elif assets.asset_type == "StaticMesh":
+            StaticNum += 1
         if GetIsAnimation(assets.asset_type):
             AnimNum += 1
         if assets.asset_type == "Camera":
@@ -114,35 +114,34 @@ def WriteExportLog():
     OtherNum = asset_number - exported_assets
 
     # Asset number string
-    AssetNumberByType = str(StaticNum)+" StaticMesh(s) | "
-    AssetNumberByType += str(SkeletalNum)+" SkeletalMesh(s) | "
-    AssetNumberByType += str(AlembicNum)+" Alembic(s) | "
-    AssetNumberByType += str(AnimNum)+" Animation(s) | "
-    AssetNumberByType += str(CameraNum)+" Camera(s) | "
-    AssetNumberByType += str(OtherNum)+" Other(s)" + "\n"
+    AssetNumberByType = f"{str(StaticNum)} StaticMesh(s) | "
+    AssetNumberByType += f"{str(SkeletalNum)} SkeletalMesh(s) | "
+    AssetNumberByType += f"{str(AlembicNum)} Alembic(s) | "
+    AssetNumberByType += f"{str(AnimNum)} Animation(s) | "
+    AssetNumberByType += f"{str(CameraNum)} Camera(s) | "
+    AssetNumberByType += f"{str(OtherNum)} Other(s)" + "\n"
 
     ExportLog = ""
     ExportLog += AssetNumberByType
     ExportLog += "\n"
     for asset in scene.UnrealExportedAssetsList:
 
-        if (asset.asset_type == "NlAnim"):
-            primaryInfo = "Animation (NLA)"
-        elif (asset.asset_type == "Action"):
+        if asset.asset_type == "Action":
             primaryInfo = "Animation (Action)"
-        elif (asset.asset_type == "Pose"):
+        elif asset.asset_type == "NlAnim":
+            primaryInfo = "Animation (NLA)"
+        elif asset.asset_type == "Pose":
             primaryInfo = "Animation (Pose)"
         else:
-            if asset.object:
-                if asset.object.ExportAsLod:
-                    primaryInfo = asset.asset_type+" (LOD)"
-                else:
-                    primaryInfo = asset.asset_type
-            else:
-                primaryInfo = asset.asset_type
-
+            primaryInfo = (
+                f"{asset.asset_type} (LOD)"
+                if asset.object and asset.object.ExportAsLod
+                else asset.asset_type
+            )
         ExportLog += (
-            asset.asset_name+" ["+primaryInfo+"] EXPORTED IN " + str(round(asset.GetExportTime(), 2))+"s\r\n")
+            f"{asset.asset_name} [{primaryInfo}] EXPORTED IN {str(round(asset.GetExportTime(), 2))}"
+            + "s\r\n"
+        )
         for file in asset.files:
             ExportLog += (file.path + "\\" + file.name + "\n")
         ExportLog += "\n"
@@ -193,17 +192,21 @@ def WriteCameraAnimationTracks(obj, target_frame_start=None, target_frame_end=No
     def getOneKeysByFcurves(obj, DataPath, DataValue, Frame, IsData=True):
         scene = bpy.context.scene
         if IsData:
-            if obj.data.animation_data is not None:
-                if obj.data.animation_data.action is not None:
-                    f = obj.data.animation_data.action.fcurves.find(DataPath)
-                    if f is not None:
-                        return f.evaluate(Frame)
+            if (
+                obj.data.animation_data is not None
+                and obj.data.animation_data.action is not None
+            ):
+                f = obj.data.animation_data.action.fcurves.find(DataPath)
+                if f is not None:
+                    return f.evaluate(Frame)
         else:
-            if obj.animation_data is not None:
-                if obj.animation_data.action is not None:
-                    f = obj.animation_data.action.fcurves.find(DataPath)
-                    if f is not None:
-                        return f.evaluate(Frame)
+            if (
+                obj.animation_data is not None
+                and obj.animation_data.action is not None
+            ):
+                f = obj.animation_data.action.fcurves.find(DataPath)
+                if f is not None:
+                    return f.evaluate(Frame)
         return DataValue
 
     def getAllKeysByFcurves(obj, DataPath, DataValue, IsData=True):
@@ -211,13 +214,17 @@ def WriteCameraAnimationTracks(obj, target_frame_start=None, target_frame_end=No
         keys = []
         f = None
         if IsData:
-            if obj.data.animation_data is not None:
-                if obj.data.animation_data.action is not None:
-                    f = obj.data.animation_data.action.fcurves.find(DataPath)
+            if (
+                obj.data.animation_data is not None
+                and obj.data.animation_data.action is not None
+            ):
+                f = obj.data.animation_data.action.fcurves.find(DataPath)
         else:
-            if obj.animation_data is not None:
-                if obj.animation_data.action is not None:
-                    f = obj.animation_data.action.fcurves.find(DataPath)
+            if (
+                obj.animation_data is not None
+                and obj.animation_data.action is not None
+            ):
+                f = obj.animation_data.action.fcurves.find(DataPath)
 
         if f is not None:
             for frame in range(target_frame_start, target_frame_end):
@@ -226,7 +233,9 @@ def WriteCameraAnimationTracks(obj, target_frame_start=None, target_frame_end=No
             return keys
         return[(target_frame_start, DataValue)]
 
-    class CameraDataAtFrame():
+
+
+    class CameraDataAtFrame:
 
         def __init__(self):
             scene = bpy.context.scene
@@ -251,17 +260,19 @@ def WriteCameraAnimationTracks(obj, target_frame_start=None, target_frame_end=No
             array_scale = array_transform[2]
 
             # Fix axis flippings
-            if camera.bfu_fix_axis_flippings:
-                if frame-1 in self.transform_track:  # Previous frame
-                    previous_rotation_x = self.transform_track[frame-1]["rotation_x"]
-                    previous_rotation_y = self.transform_track[frame-1]["rotation_y"]
-                    previous_rotation_z = self.transform_track[frame-1]["rotation_z"]
-                    diff = round((array_rotation[0] - previous_rotation_x) / 180.0) * 180.0
-                    array_rotation[0] = array_rotation[0] - diff
-                    diff = round((array_rotation[1] - previous_rotation_y) / 180.0) * 180.0
-                    array_rotation[1] = array_rotation[1] - diff
-                    diff = round((array_rotation[2] - previous_rotation_z) / 180.0) * 180.0
-                    array_rotation[2] = array_rotation[2] - diff
+            if (
+                camera.bfu_fix_axis_flippings
+                and frame - 1 in self.transform_track
+            ):
+                previous_rotation_x = self.transform_track[frame-1]["rotation_x"]
+                previous_rotation_y = self.transform_track[frame-1]["rotation_y"]
+                previous_rotation_z = self.transform_track[frame-1]["rotation_z"]
+                diff = round((array_rotation[0] - previous_rotation_x) / 180.0) * 180.0
+                array_rotation[0] = array_rotation[0] - diff
+                diff = round((array_rotation[1] - previous_rotation_y) / 180.0) * 180.0
+                array_rotation[1] = array_rotation[1] - diff
+                diff = round((array_rotation[2] - previous_rotation_z) / 180.0) * 180.0
+                array_rotation[2] = array_rotation[2] - diff
 
             transform = {}
             transform["location_x"] = array_location.x
@@ -297,14 +308,14 @@ def WriteCameraAnimationTracks(obj, target_frame_start=None, target_frame_end=No
                 key = getOneKeysByFcurves(camera, "dof.focus_distance", camera.data.dof.focus_distance, frame)
                 key = key * 100 * scale_length
 
-            if key > 0:
-                self.focus_distance[frame] = key
-            else:
-                self.focus_distance[frame] = 100000  # 100000 is default value in ue4
-
+            self.focus_distance[frame] = key if key > 0 else 100000
             # Write Aperture (Depth of Field) keys
             render_engine = scene.render.engine
-            if render_engine == "BLENDER_EEVEE" or render_engine == "CYCLES" or render_engine == "BLENDER_WORKBENCH":
+            if render_engine in [
+                "BLENDER_EEVEE",
+                "CYCLES",
+                "BLENDER_WORKBENCH",
+            ]:
                 key = getOneKeysByFcurves(camera, "dof.aperture_fstop", camera.data.dof.aperture_fstop, frame)
                 self.aperture_fstop[frame] = key / scale_length
             else:
@@ -335,6 +346,7 @@ def WriteCameraAnimationTracks(obj, target_frame_start=None, target_frame_end=No
             scene.frame_set(saveFrame)
 
         pass
+
 
     scene = bpy.context.scene
     data = {}
@@ -381,17 +393,15 @@ def WriteSingleMeshAdditionalParameter(unreal_exported_asset):
     addon_prefs = GetAddonPrefs()
     obj = unreal_exported_asset.object
 
-    data = {}
-
-    # Comment
-    data['Coment'] = {
-        '1/3': ti('write_text_additional_track_start'),
-        '2/3': ti('write_text_additional_track_all'),
-        '3/3': ti('write_text_additional_track_end'),
+    data = {
+        'Coment': {
+            '1/3': ti('write_text_additional_track_start'),
+            '2/3': ti('write_text_additional_track_all'),
+            '3/3': ti('write_text_additional_track_end'),
+        },
+        'DefaultSettings': {},
     }
 
-    # Defaultsettings
-    data['DefaultSettings'] = {}
     # config.set('Defaultsettings', 'SocketNumber', str(len(sockets)))
 
     # Level of detail
@@ -418,16 +428,15 @@ def WriteSingleMeshAdditionalParameter(unreal_exported_asset):
         data['Sockets'] = GetSkeletalMeshSockets(obj)
 
     # Vertex Color
-    if obj:
-        if GetAssetType(obj) == "SkeletalMesh" or GetAssetType(obj) == "StaticMesh":
-            vced = VertexColorExportData(obj)
-            data["vertex_color_import_option"] = vced.export_type
-            vertex_override_color = (
-                vced.color[0],  # R
-                vced.color[1],  # G
-                vced.color[2]  # B
-            )  # Color to Json
-            data["vertex_override_color"] = vertex_override_color
+    if obj and GetAssetType(obj) in ["SkeletalMesh", "StaticMesh"]:
+        vced = VertexColorExportData(obj)
+        data["vertex_color_import_option"] = vced.export_type
+        vertex_override_color = (
+            vced.color[0],  # R
+            vced.color[1],  # G
+            vced.color[2]  # B
+        )  # Color to Json
+        data["vertex_override_color"] = vertex_override_color
 
     data["preview_import_path"] = unreal_exported_asset.GetFilename()
     return data

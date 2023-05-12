@@ -54,7 +54,7 @@ class ProgressionBarClass():
         return self.__total_step
 
     def _set_total_step(self, value):
-        if not (isinstance(value, int) or isinstance(value, float)):
+        if not (isinstance(value, (int, float))):
             raise TypeError("total_step must be set to an Integer or Float")
 
         self.__total_step = value
@@ -79,10 +79,7 @@ class ProgressionBarClass():
         total_step = self.__total_step
         self.__previous_step = progress  # Update the previous step.
 
-        is_done = False
-        if progress >= total_step:
-            is_done = True
-
+        is_done = progress >= total_step
         # Write message.
         msg = "\r{0}:".format(job_title)
 
@@ -96,9 +93,8 @@ class ProgressionBarClass():
         if is_done:
             msg += " DONE IN {0}s\r\n".format(round(time.perf_counter()-self.__counter_start, 3))
 
-        else:
-            if self.show_percentage:
-                msg += " {0}%".format(round((progress*100)/total_step, 2))
+        elif self.show_percentage:
+            msg += " {0}%".format(round((progress*100)/total_step, 2))
 
         sys.stdout.write(msg)
         sys.stdout.flush()

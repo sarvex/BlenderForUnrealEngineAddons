@@ -55,63 +55,60 @@ def GetExportFullpath(dirpath, filename):
 def ApplyProxyData(obj):
 
     # Apply proxy data if needed.
-    if GetExportProxyChild(obj) is not None:
+    if GetExportProxyChild(obj) is None:
+        return
+    def ReasignProxySkeleton(newArmature, oldArmature):
+        for select in bpy.context.selected_objects:
+            if select.type == "CURVE":
+                for mod in select.modifiers:
+                    if mod.type == "HOOK" and mod.object == oldArmature:
+                        matrix_inverse = mod.matrix_inverse.copy()
+                        mod.object = newArmature
+                        mod.matrix_inverse = matrix_inverse
 
-        def ReasignProxySkeleton(newArmature, oldArmature):
-            for select in bpy.context.selected_objects:
-                if select.type == "CURVE":
-                    for mod in select.modifiers:
-                        if mod.type == "HOOK":
-                            if mod.object == oldArmature:
-                                matrix_inverse = mod.matrix_inverse.copy()
-                                mod.object = newArmature
-                                mod.matrix_inverse = matrix_inverse
+            else:
+                for mod in select.modifiers:
+                    if mod.type == 'ARMATURE' and mod.object == oldArmature:
+                        mod.object = newArmature
 
-                else:
-                    for mod in select.modifiers:
-                        if mod.type == 'ARMATURE':
-                            if mod.object == oldArmature:
-                                mod.object = newArmature
+        for bone in newArmature.pose.bones:
+            for cons in bone.constraints:
+                if hasattr(cons, 'target'):
+                    if cons.target == oldArmature:
+                        cons.target = newArmature
+                    else:
+                        ChildProxyName = (
+                            cons.target.name +
+                            "_UEProxyChild"
+                        )
+                        if ChildProxyName in bpy.data.objects:
+                            cons.target = bpy.data.objects[ChildProxyName]
 
-            for bone in newArmature.pose.bones:
-                for cons in bone.constraints:
-                    if hasattr(cons, 'target'):
-                        if cons.target == oldArmature:
-                            cons.target = newArmature
-                        else:
-                            ChildProxyName = (
-                                cons.target.name +
-                                "_UEProxyChild"
-                            )
-                            if ChildProxyName in bpy.data.objects:
-                                cons.target = bpy.data.objects[ChildProxyName]
+    # Get old armature in selected objects
+    OldProxyChildArmature = None
+    for selectedObj in bpy.context.selected_objects:
+        if selectedObj != obj and selectedObj.type == "ARMATURE":
+            OldProxyChildArmature = selectedObj
 
-        # Get old armature in selected objects
-        OldProxyChildArmature = None
+    # Reasing parent + add to remove
+    if OldProxyChildArmature is not None:
+        ToRemove = []
+        ToRemove.append(OldProxyChildArmature)
         for selectedObj in bpy.context.selected_objects:
             if selectedObj != obj:
-                if selectedObj.type == "ARMATURE":
-                    OldProxyChildArmature = selectedObj
-
-        # Reasing parent + add to remove
-        if OldProxyChildArmature is not None:
-            ToRemove = []
-            ToRemove.append(OldProxyChildArmature)
-            for selectedObj in bpy.context.selected_objects:
-                if selectedObj != obj:
-                    if selectedObj.parent == OldProxyChildArmature:
-                        # Reasing parent and keep position
-                        SavedPos = selectedObj.matrix_world.copy()
-                        selectedObj.name += "_UEProxyChild"
-                        selectedObj.parent = obj
-                        selectedObj.matrix_world = SavedPos
-                    else:
-                        ToRemove.append(selectedObj)
-            ReasignProxySkeleton(obj, OldProxyChildArmature)
-            SavedSelect = GetCurrentSelection()
-            RemovedObjects = CleanDeleteObjects(ToRemove)
-            SavedSelect.RemoveFromListByName(RemovedObjects)
-            SetCurrentSelection(SavedSelect)
+                if selectedObj.parent == OldProxyChildArmature:
+                    # Reasing parent and keep position
+                    SavedPos = selectedObj.matrix_world.copy()
+                    selectedObj.name += "_UEProxyChild"
+                    selectedObj.parent = obj
+                    selectedObj.matrix_world = SavedPos
+                else:
+                    ToRemove.append(selectedObj)
+        ReasignProxySkeleton(obj, OldProxyChildArmature)
+        SavedSelect = GetCurrentSelection()
+        RemovedObjects = CleanDeleteObjects(ToRemove)
+        SavedSelect.RemoveFromListByName(RemovedObjects)
+        SetCurrentSelection(SavedSelect)
 
 
 def BakeArmatureAnimation(armature, frame_start, frame_end):
@@ -173,18 +170,13 @@ def DuplicateSelectForExport(new_name="duplicated Obj"):
 
     data_to_remove = []
 
-    # Save action befor export
-    actionNames = []
-    for action in bpy.data.actions:
-        actionNames.append(action.name)
-
+    actionNames = [action.name for action in bpy.data.actions]
     bpy.ops.object.duplicate()
 
-    # Save the name for found after "Make Instances Real"
-    currentSelectNames = []
-    for currentSelectName in bpy.context.selected_objects:
-        currentSelectNames.append(currentSelectName.name)
-
+    currentSelectNames = [
+        currentSelectName.name
+        for currentSelectName in bpy.context.selected_objects
+    ]
     for objSelect in currentSelectNames:
         if objSelect not in bpy.context.selected_objects:
             bpy.data.objects[objSelect].select_set(True)
@@ -224,11 +216,7 @@ def MakeSelectVisualReal():
     select = bbpl.utils.UserSelectSave()
     select.SaveCurrentSelect()
 
-    # Save object list
-    previous_objects = []
-    for obj in bpy.data.objects:
-        previous_objects.append(obj)
-
+    previous_objects = list(bpy.data.objects)
     # Visual Transform Apply
     bpy.ops.object.visual_transform_apply()
 
@@ -256,18 +244,17 @@ def SetSocketsExportName(obj):
     scene = bpy.context.scene
     for socket in GetSocketDesiredChild(obj):
         if socket.bfu_use_socket_custom_Name:
-            if socket.bfu_socket_custom_Name not in scene.objects:
-
-                # Save the previous name
-                socket["BFU_PreviousSocketName"] = socket.name
-                socket.name = "SOCKET_"+socket.bfu_socket_custom_Name
-            else:
+            if socket.bfu_socket_custom_Name in scene.objects:
                 print(
                     'Can\'t rename socket "' +
                     socket.name +
                     '" to "'+socket.bfu_socket_custom_Name +
                     '".'
                     )
+            else:
+                # Save the previous name
+                socket["BFU_PreviousSocketName"] = socket.name
+                socket.name = f"SOCKET_{socket.bfu_socket_custom_Name}"
 
 
 def SetSocketsExportTransform(obj):
@@ -343,10 +330,10 @@ class PrepareExportName():
         Set the name of the asset for export
         '''
 
-        scene = bpy.context.scene
         obj = self.target_object
         if obj.name != self.new_asset_name:
             self.old_asset_name = obj.name
+            scene = bpy.context.scene
             # Avoid same name for two assets
             if self.new_asset_name in scene.objects:
                 confli_asset = scene.objects[self.new_asset_name]
@@ -358,77 +345,46 @@ class PrepareExportName():
         Reset names after export
         '''
 
-        scene = bpy.context.scene
         if self.old_asset_name != "":
             obj = self.target_object
             obj.name = self.old_asset_name
 
+            scene = bpy.context.scene
             if dup_temp_name in scene.objects:
                 armature = scene.objects[dup_temp_name]
                 armature.name = self.new_asset_name
-
-        pass
 
 # UVs
 
 
 def ConvertGeometryNodeAttributeToUV(obj):
     # obj = bpy.context.active_object  # Debug
-    if obj.convert_geometry_node_attribute_to_uv:
-        attrib_name = obj.convert_geometry_node_attribute_to_uv_name
+    if not obj.convert_geometry_node_attribute_to_uv:
+        return
+    attrib_name = obj.convert_geometry_node_attribute_to_uv_name
 
         # I need apply the geometry modifier for get the data.
         # So this work only when I do export of the duplicate object.
 
-        if hasattr(obj.data, "attributes"):  # Cuves has not attributes.
-            if attrib_name in obj.data.attributes:
+    if hasattr(obj.data, "attributes") and attrib_name in obj.data.attributes:
+        # TO DO: Bad why to do this. Need found a way to convert without using ops.
+        obj.data.attributes.active = obj.data.attributes[attrib_name]
 
-                # TO DO: Bad why to do this. Need found a way to convert without using ops.
-                obj.data.attributes.active = obj.data.attributes[attrib_name]
+        # Because a bug Blender set the wrong attribute as active in 3.5.
+        if obj.data.attributes.active != obj.data.attributes[attrib_name]:
+            for x, attribute in enumerate(obj.data.attributes):
+                if attribute.name == attrib_name:
+                    obj.data.attributes.active_index = x
 
-                # Because a bug Blender set the wrong attribute as active in 3.5.
-                if obj.data.attributes.active != obj.data.attributes[attrib_name]:
-                    for x, attribute in enumerate(obj.data.attributes):
-                        if attribute.name == attrib_name:
-                            obj.data.attributes.active_index = x
-
-                SavedSelect = GetCurrentSelection()
-                SelectSpecificObject(obj)
-                if bpy.app.version >= (3, 5, 0):
-                    if obj.data.attributes.active:
-                        bpy.ops.geometry.attribute_convert(mode='GENERIC', domain='CORNER', data_type='FLOAT2')
-                else:
-                    if obj.data.attributes.active:
-                        bpy.ops.geometry.attribute_convert(mode='UV_MAP', domain='CORNER', data_type='FLOAT2')
-                SetCurrentSelection(SavedSelect)
-                return
-
-                attrib = obj.data.attributes[attrib_name]
-
-                new_uv = obj.data.uv_layers.new(name=attrib_name)
-                uv_coords = []
-
-                attrib.data  # TO DO: I don't understand why attrib.data is egal at zero just after a duplicate.
-                print('XXXXXXXXXXXX')
-                print(type(attrib.data))
-                print('XXXXXXXXXXXX')
-                print(dir(attrib.data))
-                print('XXXXXXXXXXXX')
-                print(attrib.data.values())
-                print('XXXXXXXXXXXX')
-                attrib_data = []
-                attrib.data.foreach_get('vector', attrib_data)
-                print(attrib_data)
-
-                for fv_attrib in attrib.data:  # FloatVectorAttributeValue
-                    uv_coords.append(fv_attrib.vector)
-                uv_coords.append(attrib.data[0])
-
-                for loop in obj.data.loops:
-                    new_uv.data[loop.index].uv[0] = uv_coords[loop.index][0]
-                    new_uv.data[loop.index].uv[1] = uv_coords[loop.index][1]
-
-                obj.data.attributes.remove(attrib_name)
+        SavedSelect = GetCurrentSelection()
+        SelectSpecificObject(obj)
+        if obj.data.attributes.active:
+            if bpy.app.version >= (3, 5, 0):
+                bpy.ops.geometry.attribute_convert(mode='GENERIC', domain='CORNER', data_type='FLOAT2')
+            else:
+                bpy.ops.geometry.attribute_convert(mode='UV_MAP', domain='CORNER', data_type='FLOAT2')
+        SetCurrentSelection(SavedSelect)
+        return
 
 
 def CorrectExtremUVAtExport(obj):
@@ -449,27 +405,26 @@ def ConvertArmatureConstraintToModifiers(armature):
         previous_enabled_armature_constraints = []
 
         for const in obj.constraints:
-            if const.type == "ARMATURE":
-                if const.enabled is True:
-                    previous_enabled_armature_constraints.append(const.name)
+            if const.type == "ARMATURE" and const.enabled is True:
+                previous_enabled_armature_constraints.append(const.name)
 
-                    # Disable constraint
-                    const.enabled = False
+                # Disable constraint
+                const.enabled = False
 
-                    # Remove All Vertex Group
-                    # TO DO:
+                # Remove All Vertex Group
+                # TO DO:
 
-                    # Add Vertex Group
-                    for target in const.targets:
-                        bone_name = target.subtarget
-                        group = obj.vertex_groups.new(name=bone_name)
+                # Add Vertex Group
+                for target in const.targets:
+                    bone_name = target.subtarget
+                    group = obj.vertex_groups.new(name=bone_name)
 
-                        vertex_indices = range(0, len(obj.data.vertices))
-                        group.add(vertex_indices, 1.0, 'REPLACE')
+                    vertex_indices = range(0, len(obj.data.vertices))
+                    group.add(vertex_indices, 1.0, 'REPLACE')
 
                     # Add armature modifier
-                    mod = obj.modifiers.new("BFU_Const_"+const.name, "ARMATURE")
-                    mod.object = armature
+                mod = obj.modifiers.new(f"BFU_Const_{const.name}", "ARMATURE")
+                mod.object = armature
 
         # Save data for reset after export
         obj["BFU_PreviousEnabledArmatureConstraints"] = previous_enabled_armature_constraints
@@ -482,7 +437,7 @@ def ResetArmatureConstraintToModifiers(armature):
                 const = obj.constraints[const_names]
 
                 # Remove created armature for export
-                mod = obj.modifiers["BFU_Const_"+const_names]
+                mod = obj.modifiers[f"BFU_Const_{const_names}"]
                 obj.modifiers.remove(mod)
 
                 # Remove created Vertex Group
@@ -490,9 +445,6 @@ def ResetArmatureConstraintToModifiers(armature):
                     bone_name = target.subtarget
                     old_vertex_group = obj.vertex_groups[bone_name]
                     obj.vertex_groups.remove(old_vertex_group)
-
-                # Reset all Vertex Groups
-                    # TO DO:
 
                 # Enable back constraint
                 const.enabled = True
@@ -524,9 +476,8 @@ def ClearVertexColorForUnrealExport(parent):
     objs = GetExportDesiredChilds(parent)
     objs.append(parent)
     for obj in objs:
-        if obj.type == "MESH":
-            if "BFU_PreviousTargetIndex" in obj.data:
-                del obj.data["BFU_PreviousTargetIndex"]
+        if obj.type == "MESH" and "BFU_PreviousTargetIndex" in obj.data:
+            del obj.data["BFU_PreviousTargetIndex"]
 
 
 def GetShouldRescaleRig(obj):
@@ -537,20 +488,13 @@ def GetShouldRescaleRig(obj):
 
     addon_prefs = GetAddonPrefs()
     if addon_prefs.rescaleFullRigAtExport == "auto":
-        if math.isclose(
-            bpy.context.scene.unit_settings.scale_length,
-                0.01,
-                rel_tol=1e-5,
-                ):
 
-            return False  # False because that useless to rescale at 1 :v
-        else:
-            return True
-    if addon_prefs.rescaleFullRigAtExport == "custom_rescale":
-        return True
-    if addon_prefs.rescaleFullRigAtExport == "dont_rescale":
-        return False
-    return False
+        return not math.isclose(
+            bpy.context.scene.unit_settings.scale_length,
+            0.01,
+            rel_tol=1e-5,
+        )
+    return addon_prefs.rescaleFullRigAtExport == "custom_rescale"
 
 
 def GetRescaleRigFactor():
@@ -568,15 +512,8 @@ def GetShouldRescaleSocket():
 
     addon_prefs = GetAddonPrefs()
     if addon_prefs.rescaleSocketsAtExport == "auto":
-        if bpy.context.scene.unit_settings.scale_length == 0.01:
-            return False  # False because that useless to rescale at 1 :v
-        else:
-            return True
-    if addon_prefs.rescaleSocketsAtExport == "custom_rescale":
-        return True
-    if addon_prefs.rescaleSocketsAtExport == "dont_rescale":
-        return False
-    return False
+        return bpy.context.scene.unit_settings.scale_length != 0.01
+    return addon_prefs.rescaleSocketsAtExport == "custom_rescale"
 
 
 def GetRescaleSocketFactor():

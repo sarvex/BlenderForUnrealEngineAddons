@@ -142,9 +142,8 @@ def ExportSingleFbxAction(
         ApplySkeletalExportScale(active, rrf, is_a_proxy=export_as_proxy)
         RescaleAllActionCurve(rrf*oldScale, savedUnitLength/0.01)
         for selected in bpy.context.selected_objects:
-            if selected.type == "MESH":
-                if export_as_proxy is False:
-                    RescaleShapeKeysCurve(selected, 1/rrf)
+            if selected.type == "MESH" and export_as_proxy is False:
+                RescaleShapeKeysCurve(selected, 1/rrf)
         RescaleSelectCurveHook(1/rrf)
         ResetArmaturePose(active)
         RescaleRigConsraints(active, rrf)
@@ -160,7 +159,23 @@ def ExportSingleFbxAction(
 
     asset_name.SetExportName()
 
-    if (export_procedure == "normal"):
+    if export_procedure == "auto-rig-pro":
+        OriginalActionName = active.animation_data.action.name
+        active.animation_data.action.name = "ActionAutoRigProTempExportNameForUnreal"
+
+        ExportAutoProRig(
+            filepath=GetExportFullpath(dirpath, filename),
+            # export_rig_name=GetDesiredExportArmatureName(active),
+            bake_anim=True,
+            anim_export_name_string=active.animation_data.action.name,
+            mesh_smooth_type="FACE",
+            arp_simplify_fac=active.SimplifyAnimForExport
+            )
+
+        # Reset Action name
+        active.animation_data.action.name = OriginalActionName
+
+    elif export_procedure == "normal":
         bpy.ops.export_scene.fbx(
             filepath=GetExportFullpath(dirpath, filename),
             check_existing=False,
@@ -184,25 +199,6 @@ def ExportSingleFbxAction(
             axis_up=active.exportAxisUp,
             bake_space_transform=False
             )
-
-    elif (export_procedure == "auto-rig-pro"):
-
-        # Rename Action name for export
-        TempName = "ActionAutoRigProTempExportNameForUnreal"
-        OriginalActionName = active.animation_data.action.name
-        active.animation_data.action.name = TempName
-
-        ExportAutoProRig(
-            filepath=GetExportFullpath(dirpath, filename),
-            # export_rig_name=GetDesiredExportArmatureName(active),
-            bake_anim=True,
-            anim_export_name_string=active.animation_data.action.name,
-            mesh_smooth_type="FACE",
-            arp_simplify_fac=active.SimplifyAnimForExport
-            )
-
-        # Reset Action name
-        active.animation_data.action.name = OriginalActionName
 
     asset_name.ResetNames()
 

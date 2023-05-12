@@ -146,7 +146,17 @@ def ExportSingleFbxNLAAnim(
 
     asset_name.SetExportName()
 
-    if (export_procedure == "normal"):
+    if export_procedure == "auto-rig-pro":
+        ExportAutoProRig(
+            filepath=GetExportFullpath(dirpath, filename),
+            # export_rig_name=GetDesiredExportArmatureName(active),
+            bake_anim=True,
+            anim_export_name_string=active.animation_data.action.name,
+            mesh_smooth_type="FACE",
+            arp_simplify_fac=active.SimplifyAnimForExport
+            )
+
+    elif export_procedure == "normal":
         bpy.ops.export_scene.fbx(
             filepath=GetExportFullpath(dirpath, filename),
             check_existing=False,
@@ -168,16 +178,6 @@ def ExportSingleFbxNLAAnim(
             axis_forward=active.exportAxisForward,
             axis_up=active.exportAxisUp,
             bake_space_transform=False
-            )
-
-    if (export_procedure == "auto-rig-pro"):
-        ExportAutoProRig(
-            filepath=GetExportFullpath(dirpath, filename),
-            # export_rig_name=GetDesiredExportArmatureName(active),
-            bake_anim=True,
-            anim_export_name_string=active.animation_data.action.name,
-            mesh_smooth_type="FACE",
-            arp_simplify_fac=active.SimplifyAnimForExport
             )
 
     ResetArmaturePose(active)

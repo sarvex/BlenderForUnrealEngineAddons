@@ -27,7 +27,7 @@ import sys
 
 def LayoutSceneSection(layout, PropName, PropLabel):
     scene = bpy.context.scene
-    expanded = eval("scene."+PropName)
+    expanded = eval(f"scene.{PropName}")
     tria_icon = "TRIA_DOWN" if expanded else "TRIA_RIGHT"
     layout.row().prop(scene, PropName, icon=tria_icon, icon_only=True, text=PropLabel, emboss=False)
     return expanded

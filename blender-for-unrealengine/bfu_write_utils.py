@@ -61,9 +61,11 @@ def WriteImportPythonHeadComment(useSequencer=False):
         )
 
     if useSequencer:
-        ImportScript += "#Use this command : " + GetImportSequencerScriptCommand() + "\n"
+        ImportScript += (
+            f"#Use this command : {GetImportSequencerScriptCommand()}" + "\n"
+        )
     else:
-        ImportScript += "#Use this command : " + GetImportAssetScriptCommand() + "\n"
+        ImportScript += f"#Use this command : {GetImportAssetScriptCommand()}" + "\n"
     ImportScript += "\n"
     ImportScript += "\n"
     return ImportScript

@@ -41,11 +41,7 @@ from . import bfu_ui_utils
 def CorrectBadProperty(list=None):
     # Corrects bad properties
 
-    if list is not None:
-        objs = list
-    else:
-        objs = GetAllCollisionAndSocketsObj()
-
+    objs = list if list is not None else GetAllCollisionAndSocketsObj()
     UpdatedProp = 0
     for obj in objs:
         if obj.ExportEnum == "export_recursive":
@@ -57,11 +53,7 @@ def CorrectBadProperty(list=None):
 def UpdateNameHierarchy(list=None):
     # Updates hierarchy names
 
-    if list is not None:
-        objs = list
-    else:
-        objs = GetAllCollisionAndSocketsObj()
-
+    objs = list if list is not None else GetAllCollisionAndSocketsObj()
     UpdatedHierarchy = 0
     for obj in objs:
         if fnmatch.fnmatchcase(obj.name, "UBX*"):
@@ -97,19 +89,14 @@ def GetVertexWithZeroWeight(Armature, Mesh):
 
 
 def ContainsArmatureModifier(obj):
-    for mod in obj.modifiers:
-        if mod.type == "ARMATURE":
-            return True
-    return False
+    return any(mod.type == "ARMATURE" for mod in obj.modifiers)
 
 
 def GetSkeletonMeshs(obj):
     meshs = []
     if GetAssetType(obj) == "SkeletalMesh":  # Skeleton /  Armature
         childs = GetExportDesiredChilds(obj)
-        for child in childs:
-            if child.type == "MESH":
-                meshs.append(child)
+        meshs.extend(child for child in childs if child.type == "MESH")
     return meshs
 
 

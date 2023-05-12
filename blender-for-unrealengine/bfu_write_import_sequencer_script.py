@@ -61,7 +61,9 @@ def WriteImportSequencerTracks():
     data['render_resolution_x'] = bpy.context.scene.render.resolution_x
     data['render_resolution_y'] = bpy.context.scene.render.resolution_y
     data['secureCrop'] = 0.0001  # add end crop for avoid section overlay
-    data['unreal_import_location'] = "/" + scene.unreal_import_module + "/" + scene.unreal_import_location
+    data[
+        'unreal_import_location'
+    ] = f"/{scene.unreal_import_module}/{scene.unreal_import_location}"
 
     # Import camera
     data['cameras'] = []
@@ -112,7 +114,7 @@ def WriteImportSequencerTracks():
         marker_sections["start_time"] = section[0]
         marker_sections["end_time"] = section[1]
         if section[2]:
-            if section[2].ExportEnum == "export_recursive" or section[2].ExportEnum == "auto":
+            if section[2].ExportEnum in ["export_recursive", "auto"]:
                 marker_sections["has_camera"] = True
                 marker_sections["camera_name"] = section[2].name
             else:

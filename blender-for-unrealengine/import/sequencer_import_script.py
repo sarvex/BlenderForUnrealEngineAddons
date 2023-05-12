@@ -15,12 +15,13 @@ except ImportError:
 
 def CheckTasks():
 
-    if GetUnrealVersion() >= 4.20:  # TO DO: EditorAssetLibrary was added in witch version exactly?
-        if not hasattr(unreal, 'EditorAssetLibrary'):
-            print('--------------------------------------------------')
-            print('WARNING: Editor Scripting Utilities should be activated.')
-            print('Edit > Plugin > Scripting > Editor Scripting Utilities.')
-            return False
+    if GetUnrealVersion() >= 4.20 and not hasattr(
+        unreal, 'EditorAssetLibrary'
+    ):
+        print('--------------------------------------------------')
+        print('WARNING: Editor Scripting Utilities should be activated.')
+        print('Edit > Plugin > Scripting > Editor Scripting Utilities.')
+        return False
     if not hasattr(unreal.MovieSceneSequence, 'set_display_rate'):
         print('--------------------------------------------------')
         print('WARNING: Editor Scripting Utilities should be activated.')
@@ -48,8 +49,7 @@ def JsonLoadFile(json_file_path):
 
 def GetUnrealVersion():
     version = unreal.SystemLibrary.get_engine_version().split(".")
-    float_version = int(version[0]) + float(float(version[1])/100)
-    return float_version
+    return int(version[0]) + float(float(version[1])/100)
 
 
 def CreateSequencer():
@@ -123,12 +123,14 @@ def CreateSequencer():
     camera_cut_track.set_editor_property('display_name', 'Imported Camera Cuts')
     if GetUnrealVersion() >= 4.26:
         camera_cut_track.set_color_tint(unreal.Color(b=200, g=0, r=0, a=0))
-    else:
-        pass
-
     for x, camera_data in enumerate(sequence_data["cameras"]):
         # import camera
-        print("Start camera import " + str(x+1) + "/" + str(len(sequence_data["cameras"])) + " :" + camera_data["name"])
+        print(
+            f"Start camera import {str(x + 1)}/"
+            + str(len(sequence_data["cameras"]))
+            + " :"
+            + camera_data["name"]
+        )
         # Import camera tracks transform
         camera_tracks = JsonLoadFile(camera_data["additional_tracks_path"])
 
@@ -226,8 +228,6 @@ def CreateSequencer():
 
         if GetUnrealVersion() >= 4.26:
             current_camera_binding.set_display_name(camera_data["name"])
-        else:
-            pass
         tracksSpawned = current_camera_binding.find_tracks_by_exact_type(unreal.MovieSceneSpawnTrack)
         if len(tracksSpawned) > 0:
             sectionSpawned = tracksSpawned[0].get_sections()[0]

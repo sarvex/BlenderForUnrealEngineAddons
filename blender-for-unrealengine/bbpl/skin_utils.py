@@ -34,10 +34,7 @@ import mathutils
 
 
 def saveDefomsBones(armature):
-    SavedBones = []
-    for bone in armature.data.bones:
-        SavedBones.append([bone.name, bone.use_deform])
-    return SavedBones
+    return [[bone.name, bone.use_deform] for bone in armature.data.bones]
 
 
 def resetDeformBones(armature, SavedBones):
@@ -51,11 +48,7 @@ def setAllBonesDeforms(armature, use_deform):
 
 
 def setBonesDeforms(armature, bone_name_list, use_deform):
-    bone_list = []
-
-    for bone_name in bone_name_list:
-        bone_list.append(armature.data.bones[bone_name])
-
+    bone_list = [armature.data.bones[bone_name] for bone_name in bone_name_list]
     for bone in bone_list:
         bone.use_deform = use_deform
 

@@ -34,10 +34,9 @@ class NLA_Save():
             self.SaveTracks(nla_tracks)
 
     def SaveTracks(self, nla_tracks):
-        proxy_nla_tracks = []
-
-        for nla_track in nla_tracks:
-            proxy_nla_tracks.append(self.Proxy_NLA_Track(nla_track))
+        proxy_nla_tracks = [
+            self.Proxy_NLA_Track(nla_track) for nla_track in nla_tracks
+        ]
         self.nla_tracks_save = proxy_nla_tracks
 
     def ApplySaveOnTarget(self, target):
@@ -84,10 +83,11 @@ class NLA_Save():
                     new_strip.select = strip.select
                     new_strip.strip_time = strip.strip_time
                     # new_strip.strips = strip.strips #TO DO
-                    for i, fcurve in enumerate(strip.fcurves):
+                    for fcurve in strip.fcurves:
                         if fcurve:
-                            new_fcurve = new_strip.fcurves.find(fcurve.data_path)
-                            if new_fcurve:
+                            if new_fcurve := new_strip.fcurves.find(
+                                fcurve.data_path
+                            ):
                                 new_fcurve.array_index = fcurve.array_index
                                 new_fcurve.color = fcurve.color
                                 new_fcurve.color_mode = fcurve.color_mode
@@ -109,16 +109,18 @@ class NLA_Save():
 
     class Proxy_NLA_Track():
         def __init__(self, nla_track):
-            if nla_track:
-                self.active = nla_track.active
-                self.is_solo = nla_track.is_solo
-                self.lock = nla_track.lock
-                self.mute = nla_track.mute
-                self.name = nla_track.name
-                self.select = nla_track.select
-                self.strips = []
-                for strip in nla_track.strips:
-                    self.strips.append(self.Proxy_NLA_Track_Strip(strip))
+            if not nla_track:
+                return
+            self.active = nla_track.active
+            self.is_solo = nla_track.is_solo
+            self.lock = nla_track.lock
+            self.mute = nla_track.mute
+            self.name = nla_track.name
+            self.select = nla_track.select
+            self.strips = []
+            self.strips.extend(
+                self.Proxy_NLA_Track_Strip(strip) for strip in nla_track.strips
+            )
 
         class Proxy_NLA_Track_Strip():
             def __init__(self, strip):
@@ -184,7 +186,7 @@ class AnimationManagment():
             if copy_nla:
                 # Clear nla_tracks
                 nla_tracks_len = len(obj.animation_data.nla_tracks)
-                for x in range(nla_tracks_len):
+                for _ in range(nla_tracks_len):
                     obj.animation_data.nla_tracks.remove(obj.animation_data.nla_tracks[0])
 
                 # Add Current nla_tracks

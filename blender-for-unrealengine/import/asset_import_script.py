@@ -17,12 +17,13 @@ except ImportError:
 
 def CheckTasks():
 
-    if GetUnrealVersion() >= 4.20:  # TO DO: EditorAssetLibrary was added in witch version exactly?
-        if not hasattr(unreal, 'EditorAssetLibrary'):
-            print('--------------------------------------------------')
-            print('WARNING: Editor Scripting Utilities should be activated.')
-            print('Edit > Plugin > Scripting > Editor Scripting Utilities.')
-            return False
+    if GetUnrealVersion() >= 4.20 and not hasattr(
+        unreal, 'EditorAssetLibrary'
+    ):
+        print('--------------------------------------------------')
+        print('WARNING: Editor Scripting Utilities should be activated.')
+        print('Edit > Plugin > Scripting > Editor Scripting Utilities.')
+        return False
     return True
 
 
@@ -45,8 +46,7 @@ def JsonLoadFile(json_file_path):
 
 def GetUnrealVersion():
     version = unreal.SystemLibrary.get_engine_version().split(".")
-    float_version = int(version[0]) + float(float(version[1])/100)
-    return float_version
+    return int(version[0]) + float(float(version[1])/100)
 
 
 def ImportAllAssets():

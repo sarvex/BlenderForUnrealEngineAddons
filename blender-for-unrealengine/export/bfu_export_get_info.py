@@ -66,9 +66,7 @@ class VertexColorExportData:
 
     def GetPropertyOwner(self):
         # Return the object to use for the property or return self if none
-        if self.parent:
-            return self.parent
-        return self.obj
+        return self.parent if self.parent else self.obj
 
     def GetChosenVertexIndex(self):
 
@@ -79,23 +77,24 @@ class VertexColorExportData:
         VertexColorToUse = self.GetPropertyOwner().VertexColorToUse
         VertexColorIndexToUse = self.GetPropertyOwner().VertexColorIndexToUse
 
-        if obj:
-            if obj.data:
-                vertex_colors = utils.getVertexColors(obj)
-                if len(vertex_colors) > 0:
+        if obj and obj.data:
+            vertex_colors = utils.getVertexColors(obj)
+            if len(vertex_colors) > 0:
 
-                    if VertexColorToUse == "FirstIndex":
-                        return 0
+                if VertexColorToUse == "FirstIndex":
+                    return 0
 
-                    if VertexColorToUse == "LastIndex":
-                        return len(vertex_colors)-1
+                if VertexColorToUse == "LastIndex":
+                    return len(vertex_colors)-1
 
-                    if VertexColorToUse == "ActiveIndex":
-                        return utils.getVertexColors_RenderColorIndex(obj)
+                if VertexColorToUse == "ActiveIndex":
+                    return utils.getVertexColors_RenderColorIndex(obj)
 
-                    if VertexColorToUse == "CustomIndex":
-                        if VertexColorIndexToUse < len(vertex_colors):
-                            return VertexColorIndexToUse
+                if (
+                    VertexColorToUse == "CustomIndex"
+                    and VertexColorIndexToUse < len(vertex_colors)
+                ):
+                    return VertexColorIndexToUse
         return -1
 
     def GetChosenVertexName(self):
@@ -104,13 +103,11 @@ class VertexColorExportData:
         if index == -1:
             return "None"
 
-        obj = self.obj
-        if obj:
-            if obj.type == "MESH":
-                if obj.data:
-                    vertex_colors = utils.getVertexColors(obj)
-                    if obj.VertexColorIndexToUse < len(vertex_colors):
-                        return vertex_colors[index].name
+        if obj := self.obj:
+            if obj.type == "MESH" and obj.data:
+                vertex_colors = utils.getVertexColors(obj)
+                if obj.VertexColorIndexToUse < len(vertex_colors):
+                    return vertex_colors[index].name
 
         return "None"
 

@@ -162,7 +162,7 @@ def GetThemeColors(Theme="DEFAULT"):
             (0.513726, 0.937255, 0.113725),
         ]
     else:
-        print("Error in GetThemeColors() "+Theme+" not found!")
+        print(f"Error in GetThemeColors() {Theme} not found!")
         return [
             (0, 0, 0),
             (0, 0, 0),
@@ -187,7 +187,7 @@ def updateBoneShape(
     armature.pose.bones[boneName].custom_shape_translation = shapeTranslation
     armature.pose.bones[boneName].custom_shape_rotation_euler = shapeRotation
 
-    if not overrideTransformBoneName == "":
+    if overrideTransformBoneName != "":
         armature.pose.bones[boneName].custom_shape_transform = armature.pose.bones[overrideTransformBoneName]
     else:
         armature.pose.bones[boneName].custom_shape_transform = None
@@ -210,7 +210,7 @@ def generateBoneShapeFromProp(
         return col
 
     bone_length = armature.data.bones[bone_name].length
-    NewShapeName = "Shape_CustomGeneratedShape_"+bone_name
+    NewShapeName = f"Shape_CustomGeneratedShape_{bone_name}"
     if NewShapeName in bpy.data.objects:
         bpy.data.objects.remove(bpy.data.objects[NewShapeName])  # Clean for recreate
 
@@ -233,7 +233,6 @@ def generateBoneShapeFromProp(
         b = armature.data.bones[bone_name].matrix
         bl = armature.data.bones[bone_name].matrix_local
         for v in NewShape.data.vertices:
-            pass
             v.co = v.co - bl.to_translation()
             v.co = v.co @ (bl)
 
@@ -241,7 +240,6 @@ def generateBoneShapeFromProp(
         b = armature.data.bones[bone_name].matrix
         bl = armature.data.bones[bone_name].matrix_local
         for v in NewShape.data.vertices:
-            pass
             v.co = v.co + object_use.location
             v.co = v.co - bl.to_translation()
             v.co = v.co @ (bl)

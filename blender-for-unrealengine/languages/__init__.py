@@ -17,7 +17,7 @@ def UpdateDict(local, tooltips=True, interface=True, new_data=True):
     onlyfiles = [f for f in listdir(lang_path) if isfile(join(lang_path, f))]
 
     for file in onlyfiles:
-        if file == local+".json":
+        if file == f"{local}.json":
             with open(os.path.join(lang_path, file)) as json_file:
                 data = json.load(json_file)
 
@@ -64,9 +64,8 @@ def Translate_Tooltips(phrase: str):
 
     if phrase in tooltips_dictionary:
         return tooltips_dictionary[phrase]
-    else:
-        print("Error, in languages text ID not found: " + phrase)
-        return phrase
+    print(f"Error, in languages text ID not found: {phrase}")
+    return phrase
 
 
 def Translate_Interface(phrase: str):
@@ -77,9 +76,8 @@ def Translate_Interface(phrase: str):
 
     if phrase in interface_dictionary:
         return interface_dictionary[phrase]
-    else:
-        print("Error, in languages text ID not found: " + phrase)
-        return phrase
+    print(f"Error, in languages text ID not found: {phrase}")
+    return phrase
 
 
 def Translate_NewData(phrase: str):
@@ -90,9 +88,8 @@ def Translate_NewData(phrase: str):
 
     if phrase in new_data_dictionary:
         return new_data_dictionary[phrase]
-    else:
-        print("Error, in languages text ID not found: " + phrase)
-        return phrase
+    print(f"Error, in languages text ID not found: {phrase}")
+    return phrase
 
 
 def tt(phrase: str):
